@@ -1,0 +1,42 @@
+unstable_features = true
+
+# Imports
+imports_granularity = "One"
+imports_layout = "Vertical"
+group_imports = "StdExternalCrate"
+
+# Modules
+reorder_modules = true
+
+# Comments
+comment_width = 80
+wrap_comments = true
+format_code_in_doc_comments = true
+normalize_comments = true
+
+# Strings
+format_strings = true
+
+# Match
+match_block_trailing_comma = true
+force_multiline_blocks = true
+
+# Impls
+reorder_impl_items = true
+
+# Structs
+struct_field_align_threshold = 12
+#struct_lit_width = 20
+#struct_variant_width = 20
+use_field_init_shorthand = true
+
+
+# Lines
+newline_style = "Unix"
+error_on_line_overflow = true
+tab_spaces = 4
+
+combine_control_expr = false
+
+# If statements
+single_line_if_else_max_width = 40
