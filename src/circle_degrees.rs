@@ -1,7 +1,6 @@
 use std::ops::{
     Add,
-    AddAssign
-    ,
+    AddAssign,
     Sub,
     SubAssign,
 };

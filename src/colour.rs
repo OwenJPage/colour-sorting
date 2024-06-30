@@ -9,6 +9,7 @@ use {
     },
 };
 
+#[non_exhaustive]
 pub enum Colour {
     HSL {
         hue:        CircleDegrees,
@@ -25,7 +26,22 @@ pub enum Colour {
         green: u8,
         blue:  u8,
     },
-    // TODO: LAB and other systems
+    CIELAB {
+        l_star: PercentageF32,
+        a_star: i8,
+        b_star: i8,
+    }, // TODO: LAB and other systems
+    XYZ {
+        x: i8,
+        y: i8,
+        z: i8,
+    },
+    LMS {
+        // TODO: Figure out the range of LMS values
+        l: u8,
+        m: u8,
+        s: u8,
+    },
 }
 
 impl Colour {
@@ -140,6 +156,13 @@ impl Colour {
             Colour::RGB { red, green, blue } => {
                 Self::rgb_to_hsvl::<H, S, V, false>(*red, *green, *blue)
             },
+            Colour::CIELAB {
+                l_star,
+                a_star,
+                b_star,
+            } => {
+                todo!()
+            },
         }
     }
 
@@ -191,6 +214,13 @@ impl Colour {
             Colour::RGB { red, green, blue } => {
                 Self::rgb_to_hsvl::<H, S, L, true>(*red, *green, *blue)
             },
+            Colour::CIELAB {
+                l_star,
+                a_star,
+                b_star,
+            } => {
+                todo!()
+            },
         }
     }
 
@@ -202,7 +232,22 @@ impl Colour {
                 hue,
                 saturation,
                 luminosity,
-            } => {},
+            } => {
+                let h_raw = hue.value();
+                let s_raw = saturation.value();
+                let l_raw = luminosity.value();
+
+                let a = s_raw * f32::min(l_raw, 1.0 - l_raw);
+
+                let f = |n| {
+                    let k = (n as f32 + (h_raw as f32 / 30.0)) % 12.0;
+
+                    (l_raw - a * f32::max(-1.0, f32::min(k - 3.0, f32::min(9.0 - k, 1.0)))).round()
+                        as u8
+                };
+
+                (R.then(|| f(0)), G.then(|| f(8)), B.then(|| f(4)))
+            },
             Colour::HSV {
                 hue,
                 saturation,
@@ -215,13 +260,21 @@ impl Colour {
                 let f = |n| {
                     let k = (n as f32 + (h_raw as f32 / 60.0)) % 6.0;
 
-                    (v_raw - v_raw * s_raw * 0.0f32.max(k.min((4.0 - k).min(1.0)))) as u8
+                    (v_raw - v_raw * s_raw * f32::max(0.0, f32::min(k, f32::min(4.0 - k, 1.0))))
+                        .round() as u8
                 };
 
                 (R.then(|| f(5)), G.then(|| f(3)), B.then(|| f(1)))
             },
             Colour::RGB { red, green, blue } => {
                 (R.then_some(*red), G.then_some(*green), B.then_some(*blue))
+            },
+            Colour::CIELAB {
+                l_star,
+                a_star,
+                b_star,
+            } => {
+                todo!()
             },
         }
     }
@@ -264,7 +317,15 @@ impl Colour {
         )
     }
 
-    pub fn rgb_tuple(&self) -> (u8, u8, u8) {}
+    pub fn rgb_tuple(&self) -> (u8, u8, u8) {
+        let (r, g, b) = self.select_rgb::<true, true, true>();
+
+        (
+            r.expect("Red was not calculated"),
+            g.expect("Green was not calculated"),
+            b.expect("Blue was not calculated"),
+        )
+    }
 
     pub fn hue(&self) -> CircleDegrees {
         let (h, _, _) = self.select_hsv::<true, false, false>();
@@ -289,6 +350,21 @@ impl Colour {
     pub fn luminosity(&self) -> PercentageF32 {
         let (_, _, l) = self.select_hsl::<false, false, true>();
         l.expect("Luminosity was not calculated")
+    }
+
+    pub fn red(&self) -> u8 {
+        let (r, _, _) = self.select_rgb::<true, false, false>();
+        r.expect("Red was not calculated")
+    }
+
+    pub fn green(&self) -> u8 {
+        let (_, g, _) = self.select_rgb::<false, true, false>();
+        g.expect("Green was not calculated")
+    }
+
+    pub fn blue(&self) -> u8 {
+        let (_, _, b) = self.select_rgb::<false, false, true>();
+        b.expect("Blue was not calculated")
     }
 }
 
@@ -326,12 +402,19 @@ impl Debug for Colour {
                     .field(blue)
                     .finish()
             },
+            Colour::CIELAB {
+                l_star,
+                a_star,
+                b_star,
+            } => {
+                todo!()
+            },
         }
     }
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
     use crate::colour::Colour;
 
     #[test]
@@ -340,7 +423,17 @@ mod test {
 
         (colour.red() == 236)
             .then_some(())
-            .ok_or("Incorrect red value {}")
+            .ok_or(format!("Incorrect red value {}", colour.red()))?;
+
+        (colour.green() == 229)
+            .then_some(())
+            .ok_or(format!("Incorrect green value {}", colour.green()))?;
+
+        (colour.blue() == 219)
+            .then_some(())
+            .ok_or(format!("Incorrect blue value {}", colour.blue()))?;
+
+        Ok(())
     }
 
     #[test]
@@ -380,5 +473,7 @@ mod test {
             green: 237,
             blue:  73,
         };
+
+        todo!()
     }
 }
